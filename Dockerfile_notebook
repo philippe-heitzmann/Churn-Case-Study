@@ -1,0 +1,28 @@
+# python:3.8 matches the pinned numpy/scikit-learn versions in requirements.txt
+FROM python:3.8-slim
+
+WORKDIR /usr/src/app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+# Old pins need compatible pip/setuptools and numpy installed before scikit-learn.
+# Do not upgrade pip: newer pip uses isolated builds that break numpy 1.18.x on ARM.
+RUN pip install --no-cache-dir "pip<21" "setuptools<58" wheel \
+    && pip install --no-cache-dir numpy==1.18.5 \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir jupyter
+
+COPY . .
+
+# Make port 8888 available to the world outside this container
+EXPOSE 8888
+
+# Run jupyter notebook when the container launches
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
